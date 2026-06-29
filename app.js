@@ -15,7 +15,10 @@ const PHASES = [
   {name:'Legacy', icon:'🏆', min:5e9, max:Infinity, desc:'Membangun kekayaan antargenerasi & memberikan dampak.'}
 ];
 
-let D, CACHE = {};
+// **PENTING: Inisialisasi D di awal sebagai fallback**
+let D = getDefault();
+let CACHE = {};
+
 const uid = () => Math.random().toString(36).slice(2,11);
 const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const today = () => new Date().toISOString().slice(0,10);
@@ -28,13 +31,21 @@ const fPct = (a,b) => b ? Math.min(100, Math.max(0, Math.round((a/b)*100))) : 0;
 
 // Storage helpers
 function loadData() {
-  const raw = localStorage.getItem('wt_data');
-  if (!raw) return;
-  let parsed = JSON.parse(raw);
-  if (parsed.v !== SCHEMA_V) parsed = migrate(parsed);
-  D = Object.assign({}, getDefault(), parsed);
-  ['tx','sv','as','lb','bg','gl'].forEach(k => { D[k] = D[k] || []; });
-  clearCache();
+  try {
+    const raw = localStorage.getItem('wt_data');
+    if (raw) {
+      let parsed = JSON.parse(raw);
+      if (parsed.v !== SCHEMA_V) parsed = migrate(parsed);
+      D = Object.assign({}, getDefault(), parsed);
+    } else {
+      D = getDefault();
+    }
+    ['tx','sv','as','lb','bg','gl'].forEach(k => { D[k] = D[k] || []; });
+    clearCache();
+  } catch(e) {
+    D = getDefault();
+    clearCache();
+  }
 }
 function saveData() {
   clearCache();
@@ -704,7 +715,7 @@ window.App = {
   openConfirm, focusAmt, blurAmt, swTxType
 };
 
-// Init
+// Init (D sudah ada fallback-nya)
 loadData();
 document.documentElement.setAttribute('data-theme', D.user.theme);
 document.getElementById('menuToggle').style.display = window.innerWidth <= 900 ? 'flex' : 'none';
