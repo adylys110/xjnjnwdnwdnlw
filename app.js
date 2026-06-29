@@ -465,13 +465,15 @@ function openModal(type, id=null) {
   document.getElementById('modalOverlay').classList.add('open');
   const b = document.getElementById('modalBody');
   const f = document.getElementById('modalFooter');
-
-  const item = id ? (type==='tx'?D.tx:type==='sv'?D.sv:type==='as'?D.as:type==='lb'?D.lb:type==='bg'?D.bg:type==='gl'?D.gl:[]).find(x=>x.id===id) : null;
-  const isTx = type==='tx';
-  const tType = item && isTx ? item.type : 'expense';
+  let item = null;
+  if (id) {
+    const arr = type==='tx'?D.tx:type==='sv'?D.sv:type==='as'?D.as:type==='lb'?D.lb:type==='bg'?D.bg:D.gl;
+    item = arr.find(x=>x.id===id);
+  }
+  const tType = (item && type==='tx') ? item.type : 'expense';
   window._mTxType = tType;
 
-  if (isTx) {
+  if (type==='tx') {
     document.getElementById('modalTitle').textContent = id ? 'Edit Transaksi' : 'Tambah Transaksi';
     b.innerHTML = `
       <div class="type-toggle">
@@ -479,35 +481,71 @@ function openModal(type, id=null) {
         <div class="type-opt ${tType==='expense'?'active-ex':''}" onclick="App.swTxType('expense')">Pengeluaran</div>
       </div>
       <div class="input-group"><label>Jumlah (Rp)</label><div class="input-prefix"><span class="pfx">Rp</span>
-        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item?fRp(item.amount).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.amount||0}">
+        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.amount).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.amount||0}">
       </div></div>
       <div class="input-group"><label>Kategori</label><select class="input-field" id="m_cat">
         ${(tType==='income'?CATS_IN:CATS_EX).map(c=>`<option value="${c}" ${item&&item.cat===c?'selected':''}>${c}</option>`).join('')}
       </select></div>
-      <div class="input-group"><label>Deskripsi</label><input class="input-field" id="m_desc" value="${item?esc(item.desc||''):''}"></div>
+      <div class="input-group"><label>Deskripsi/Catatan</label><input class="input-field" id="m_desc" value="${item?esc(item.desc||''):''}"></div>
       <div class="input-group"><label>Tanggal</label><input class="input-field" type="date" id="m_date" value="${item?item.date:today()}"></div>`;
-  } else {
-    // jenis lain tetap pakai mask yang lama (sudah tidak dipakai di tx)
-    // ... (kode disederhanakan, tapi full di bawah)
   }
-  // ... (seluruh kode modal untuk sv, as, lb, bg, gl tetap, dengan perbaikan validasi)
-
-  // Saya tuliskan potongan penting, agar tidak terlalu panjang (akan saya lampirkan kode lengkap di lampiran terpisah)
-  // ...
+  else if (type==='sv') {
+    document.getElementById('modalTitle').textContent = id ? 'Edit Rekening' : 'Tambah Rekening';
+    b.innerHTML = `
+      <div class="input-group"><label>Nama Rekening</label><input class="input-field" id="m_name" value="${item?esc(item.name):''}"></div>
+      <div class="input-group"><label>Saldo Saat Ini</label><div class="input-prefix"><span class="pfx">Rp</span>
+        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.balance).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.balance||0}">
+      </div></div>
+      <div class="input-group"><label>Warna Aksen</label><select class="input-field" id="m_color">${COLORS.map(c=>`<option value="${c}" ${item&&item.color===c?'selected':''}>${c}</option>`).join('')}</select></div>`;
+  }
+  else if (type==='as') {
+    document.getElementById('modalTitle').textContent = id ? 'Edit Aset' : 'Tambah Aset';
+    b.innerHTML = `
+      <div class="input-group"><label>Nama Aset</label><input class="input-field" id="m_name" value="${item?esc(item.name):''}"></div>
+      <div class="input-group"><label>Estimasi Nilai</label><div class="input-prefix"><span class="pfx">Rp</span>
+        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.value).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.value||0}">
+      </div></div>`;
+  }
+  else if (type==='lb') {
+    document.getElementById('modalTitle').textContent = id ? 'Edit Utang' : 'Tambah Utang';
+    b.innerHTML = `
+      <div class="input-group"><label>Nama Utang</label><input class="input-field" id="m_name" value="${item?esc(item.name):''}"></div>
+      <div class="input-group"><label>Sisa Pokok Utang</label><div class="input-prefix"><span class="pfx">Rp</span>
+        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.amount).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.amount||0}">
+      </div></div>`;
+  }
+  else if (type==='bg') {
+    document.getElementById('modalTitle').textContent = id ? 'Edit Anggaran' : 'Buat Anggaran';
+    b.innerHTML = `
+      <div class="input-group"><label>Kategori</label><select class="input-field" id="m_cat">${CATS_EX.map(c=>`<option value="${c}" ${item&&item.cat===c?'selected':''}>${c}</option>`).join('')}</select></div>
+      <div class="input-group"><label>Batas Maksimal Bulanan</label><div class="input-prefix"><span class="pfx">Rp</span>
+        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.limit).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.limit||0}">
+      </div></div>`;
+  }
+  else if (type==='gl') {
+    document.getElementById('modalTitle').textContent = id ? 'Edit Target' : 'Buat Target';
+    b.innerHTML = `
+      <div class="input-group"><label>Nama Impian</label><input class="input-field" id="m_name" value="${item?esc(item.name):''}"></div>
+      <div class="input-group"><label>Target Kebutuhan Dana</label><div class="input-prefix"><span class="pfx">Rp</span>
+        <input class="input-field" id="m_amt" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.target).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.target||0}">
+      </div></div>
+      <div class="input-group"><label>Sudah Terkumpul</label><div class="input-prefix"><span class="pfx">Rp</span>
+        <input class="input-field" id="m_saved" type="text" inputmode="numeric" onfocus="App.focusAmt(this)" onblur="App.blurAmt(this)" value="${item ? fRp(item.saved).replace(/[^0-9]/g,'') : ''}" data-raw="${item?.saved||0}">
+      </div></div>`;
+  }
   f.innerHTML = `<button class="btn btn-secondary" onclick="App.closeModal()">Batal</button>
     <button class="btn btn-primary" id="btnSaveModal">Simpan</button>`;
-  document.getElementById('btnSaveModal').onclick = () => saveModal();
+  document.getElementById('btnSaveModal').onclick = saveModal;
 }
 
-// Input nominal tanpa merusak kursor
 function focusAmt(el) {
-  el.value = el.dataset.raw;
+  el.value = el.dataset.raw || '';
   el.setSelectionRange(el.value.length, el.value.length);
 }
 function blurAmt(el) {
   const num = parseInt(el.value.replace(/[^0-9]/g,''),10) || 0;
   el.dataset.raw = num;
-  el.value = fRp(num).replace(/[^0-9]/g,'');
+  el.value = num === 0 ? '' : new Intl.NumberFormat('id-ID').format(num);
 }
 function swTxType(type) {
   window._mTxType = type;
@@ -521,13 +559,109 @@ function swTxType(type) {
 function saveModal() {
   const type = currentModalType;
   const id = currentModalId;
-  // Ambil data dari field sesuai type
-  // ...
-  // Simpan & tutup
+  const getNum = (fieldId) => parseInt(document.getElementById(fieldId)?.dataset.raw || 0, 10);
+  const getStr = (fieldId) => document.getElementById(fieldId)?.value.trim() || '';
+
+  if (type === 'tx') {
+    const amt = getNum('m_amt');
+    const cat = getStr('m_cat');
+    const desc = getStr('m_desc');
+    const date = getStr('m_date');
+    if (!amt) return showToast('Jumlah wajib diisi', 'error');
+    if (id) {
+      const t = D.tx.find(x=>x.id===id);
+      if (t) Object.assign(t, {type:window._mTxType, amount:amt, cat, desc, date});
+    } else {
+      D.tx.push({id:uid(), type:window._mTxType, amount:amt, cat, desc, date});
+    }
+  }
+  else if (type === 'sv') {
+    const name = getStr('m_name');
+    const balance = getNum('m_amt');
+    const color = getStr('m_color');
+    if (!name) return showToast('Nama wajib diisi', 'error');
+    if (id) {
+      const s = D.sv.find(x=>x.id===id);
+      if (s) Object.assign(s, {name, balance, color});
+    } else D.sv.push({id:uid(), name, balance, color, icon:'🏦'});
+  }
+  else if (type === 'as') {
+    const name = getStr('m_name');
+    const value = getNum('m_amt');
+    if (!name) return showToast('Nama wajib diisi', 'error');
+    if (id) {
+      const a = D.as.find(x=>x.id===id);
+      if (a) Object.assign(a, {name, value});
+    } else D.as.push({id:uid(), name, value});
+  }
+  else if (type === 'lb') {
+    const name = getStr('m_name');
+    const amount = getNum('m_amt');
+    if (!name) return showToast('Nama wajib diisi', 'error');
+    if (id) {
+      const l = D.lb.find(x=>x.id===id);
+      if (l) Object.assign(l, {name, amount});
+    } else D.lb.push({id:uid(), name, amount});
+  }
+  else if (type === 'bg') {
+    const cat = getStr('m_cat');
+    const limit = getNum('m_amt');
+    if (!limit) return showToast('Batas anggaran wajib diisi', 'error');
+    if (!id && D.bg.some(x=>x.cat===cat)) return showToast('Kategori ini sudah punya anggaran', 'error');
+    if (id) {
+      const b = D.bg.find(x=>x.id===id);
+      if (b) {
+        if (b.cat !== cat && D.bg.some(x=>x.cat===cat && x.id!==id)) return showToast('Kategori sudah dipakai', 'error');
+        Object.assign(b, {cat, limit});
+      }
+    } else D.bg.push({id:uid(), cat, limit});
+  }
+  else if (type === 'gl') {
+    const name = getStr('m_name');
+    const target = getNum('m_amt');
+    const saved = getNum('m_saved');
+    if (!name || !target) return showToast('Nama & Target wajib diisi', 'error');
+    if (id) {
+      const g = D.gl.find(x=>x.id===id);
+      if (g) Object.assign(g, {name, target, saved});
+    } else D.gl.push({id:uid(), name, target, saved, icon:'🎯'});
+  }
   saveData();
   closeModal();
   navigate(currentPage);
   showToast('Data disimpan', 'success');
+}
+
+function closeModal(e) {
+  if (e && e.target.id !== 'modalOverlay') return;
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function openConfirm(title, msg, btnText, actionFn) {
+  document.getElementById('modalOverlay').classList.add('open');
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalBody').innerHTML = `<p style="font-size:14px; color:var(--text2); line-height:1.6">${msg}</p>`;
+  document.getElementById('modalFooter').innerHTML = `
+    <button class="btn btn-secondary" onclick="App.closeModal()">Batal</button>
+    <button class="btn btn-danger" id="confBtn">${btnText}</button>`;
+  document.getElementById('confBtn').onclick = () => { closeModal(); actionFn(); };
+}
+
+function delItem(type, id) {
+  const config = {
+    tx: { arr: D.tx, msg: 'Hapus transaksi ini permanen?' },
+    sv: { arr: D.sv, msg: 'Hapus rekening ini permanen?' },
+    as: { arr: D.as, msg: 'Hapus aset ini permanen?' },
+    lb: { arr: D.lb, msg: 'Hapus utang ini permanen?' },
+    bg: { arr: D.bg, msg: 'Hapus anggaran ini permanen?' },
+    gl: { arr: D.gl, msg: 'Hapus target impian ini permanen?' }
+  };
+  openConfirm('Konfirmasi Hapus', config[type].msg, 'Hapus', () => {
+    D[type] = config[type].arr.filter(x => x.id !== id);
+    saveData();
+    navigate(currentPage);
+    showToast('Data dihapus');
+  });
 }
 
 /* ========== TOAST ========== */
@@ -565,7 +699,8 @@ if ('serviceWorker' in navigator) {
 // Public API
 window.App = {
   navigate, openModal, closeModal, delItem, filterTx, showToast,
-  toggleTheme, toggleMobileMenu, svName, svPin, expData, impData, resetAll,
+  toggleTheme, toggleMobileMenu:()=>document.getElementById('sidebar').classList.toggle('open'),
+  svName, svPin, expData, impData, resetAll,
   openConfirm, focusAmt, blurAmt, swTxType
 };
 
